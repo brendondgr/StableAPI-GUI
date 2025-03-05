@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
         self.generator = ImageGenerator()
         
         # Load specifications from JSON file
-        with open("specification.json", "r") as file:
+        with open("info/specification.json", "r") as file:
             self.specifications = json.load(file)
 
         self.main_widget = QWidget(self)

@@ -3,6 +3,7 @@ widget_tests/
 test/
 saves/
 prompts.txt
+keys.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
