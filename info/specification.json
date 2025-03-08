@@ -1,5 +1,14 @@
 {
-    "models": ["stable-diffusion-xl-1024-v1-0", "stable-diffusion-v1-6", "sd3", "sd3-turbo"],
+    "models": [
+        "stable-diffusion-xl-1024-v1-0",
+        "stable-diffusion-v1-6",
+        "stable-diffusion-3-large",
+        "stable-diffusion-3-large-turbo",
+        "stable-diffusion-3-medium",
+        "stable-diffusion-3-5-large",
+        "stable-diffusion-3-5-large-turbo",
+        "stable-diffusion-3-5-medium"
+    ],
     "aspects": ["1:1 | 1024x1024 | 512x512",
                 "16:9 | 1024x576 | 512x288",
                 "21:9 | 1536x640 | 768x320",

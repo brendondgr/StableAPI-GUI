@@ -37,9 +37,7 @@ class ImageGenerator():
         self.use_perplexity = use_perplexity
 
         # Sets up the proper widths and heights for the different models
-        if model == "sd3-turbo" or model == "sd3":
-            self.aspect = aspect.split(" | ")[0]
-        elif model == "stable-diffusion-v1-6":
+        if model == "stable-diffusion-v1-6":
             self.aspect = aspect.split(" | ")[2]
             self.width = aspect.split(" | ")[2].split("x")[0]
             self.height = aspect.split(" | ")[2].split("x")[1]
@@ -47,6 +45,11 @@ class ImageGenerator():
             self.aspect = aspect.split(" | ")[1]
             self.width = aspect.split(" | ")[1].split("x")[0]
             self.height = aspect.split(" | ")[1].split("x")[1]
+        elif model in ["stable-diffusion-3-large", "stable-diffusion-3-large-turbo", "stable-diffusion-3-medium", "stable-diffusion-3-5-large", "stable-diffusion-3-5-large-turbo", "stable-diffusion-3-5-medium"]:
+            self.aspect = aspect.split(" | ")[0]
+            self.width = aspect.split(" | ")[0].split("x")[0]
+            self.height = aspect.split(" | ")[0].split("x")[1]
+            
     
     def generate_image(self):
         # Generate prompt based on perplexity
@@ -59,7 +62,7 @@ class ImageGenerator():
             self.seed = randint(0, 4294967295)
         
         # Generate image based on model
-        if self.model == "sd3-turbo" or self.model == "sd3":
+        if self.model in ["stable-diffusion-3-large", "stable-diffusion-3-large-turbo", "stable-diffusion-3-medium", "stable-diffusion-3-5-large", "stable-diffusion-3-5-large-turbo", "stable-diffusion-3-5-medium"]:
             response = generate_stable3(self.api_key, self.prompt, model=self.model, aspect_ratio=self.aspect, negative_prompt=self.negative_prompt, seed=self.seed)
         if self.model == "stable-diffusion-v1-6" or self.model == "stable-diffusion-xl-1024-v1-0":
             response = generate_nonstable3(self.api_key, self.prompt, engine_id=self.model, cfg=self.cfg, height=self.height, width=self.width, samples=self.samples, steps=self.steps, use_seed=self.use_random_seed, seed_val=self.seed)
@@ -121,30 +124,42 @@ def generate_nonstable3(api_key, prompt, engine_id='stable-diffusion-xl-1024-v1-
 
     return response
 
-def generate_stable3(api_key, prompt, model="sd3-turbo", aspect_ratio="1:1", mode="text-to-image", negative_prompt="", seed="0"):
-    import requests
+def generate_stable3(api_key, prompt, model, strength=0.5, aspect_ratio='1:1', seed=0, negative_prompt='', cfg_scale=7):
+    from os import getenv
+    from requests import post
+    
+    api_host = getenv('API_HOST', 'https://api.stability.ai')
+    
+    # Prepare the request payload
+    payload = {
+        "text_prompts": [
+            {"text": prompt}
+        ],
+        "cfg_scale": cfg_scale,
+        "aspect_ratio": aspect_ratio,
+        "strength": strength,
+        "seed": seed if seed != 0 else None,
+    }
+    
+    # Exclude negative_prompt for sd3-large-turbo
+    if model != "stable-diffusion-3-large-turbo":
+        payload["negative_prompt"] = negative_prompt
 
-    response = requests.post(
-        f"https://api.stability.ai/v2beta/stable-image/generate/sd3",
+    # Make the API request
+    response = post(
+        f"{api_host}/v1/generation/{model}/text-to-image",
         headers={
-            "authorization": f"Bearer {api_key}",
-            "accept": "image/*"
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}"
         },
-        files={"none": ''},
-        data={
-            "prompt": f"{prompt}",
-            "output_format": "png",
-            "aspect_ratio": f"{aspect_ratio}",
-            "mode": f"{mode}",
-            "negative_prompts": f"{negative_prompt}",
-            "model": f"{model}",
-            "seed": f"{seed}"
-        },
+        json=payload
     )
-    
+
+    if response.status_code != 200:
+        raise Exception("Non-200 response: " + str(response.text))
+
     return response
-    
-    
 
 def saveimages(data, model):
     from time import strftime
