@@ -10,6 +10,13 @@ StableAPI GUI was created using Python to make it easier for a user to create im
 - CFG Scale
 - Samples
 - Re-writing the Prompt Using Perplexity API
+
+## Installation
+- Clone the repository
+- Optionally, create a conda environment... `conda create -n stableapi python=3.11`
+- Run `pip install -r requirements.txt`
+- Run `python main.py`
+
 ## Example of GUI
 <div align="center">
 
