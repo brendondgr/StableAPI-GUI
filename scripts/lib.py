@@ -45,10 +45,10 @@ class ImageGenerator():
             self.aspect = aspect.split(" | ")[1]
             self.width = aspect.split(" | ")[1].split("x")[0]
             self.height = aspect.split(" | ")[1].split("x")[1]
-        elif model in ["stable-diffusion-3-large", "stable-diffusion-3-large-turbo", "stable-diffusion-3-medium", "stable-diffusion-3-5-large", "stable-diffusion-3-5-large-turbo", "stable-diffusion-3-5-medium"]:
+        elif model in ["sd3-large", "sd3-large-turbo", "sd3-medium", "sd3.5-large", "sd3.5-large-turbo", "sd3.5-medium"]:
             self.aspect = aspect.split(" | ")[0]
-            self.width = aspect.split(" | ")[0].split("x")[0]
-            self.height = aspect.split(" | ")[0].split("x")[1]
+            self.width = aspect.split(" | ")[0].split(":")[0]
+            self.height = aspect.split(" | ")[0].split(":")[1]
             
     
     def generate_image(self):
@@ -62,7 +62,7 @@ class ImageGenerator():
             self.seed = randint(0, 4294967295)
         
         # Generate image based on model
-        if self.model in ["stable-diffusion-3-large", "stable-diffusion-3-large-turbo", "stable-diffusion-3-medium", "stable-diffusion-3-5-large", "stable-diffusion-3-5-large-turbo", "stable-diffusion-3-5-medium"]:
+        if self.model in ["sd3-large", "sd3-large-turbo", "sd3-medium", "sd3.5-large", "sd3.5-large-turbo", "sd3.5-medium"]:
             response = generate_stable3(self.api_key, self.prompt, model=self.model, aspect_ratio=self.aspect, negative_prompt=self.negative_prompt, seed=self.seed)
         if self.model == "stable-diffusion-v1-6" or self.model == "stable-diffusion-xl-1024-v1-0":
             response = generate_nonstable3(self.api_key, self.prompt, engine_id=self.model, cfg=self.cfg, height=self.height, width=self.width, samples=self.samples, steps=self.steps, use_seed=self.use_random_seed, seed_val=self.seed)
@@ -121,6 +121,9 @@ def generate_nonstable3(api_key, prompt, engine_id='stable-diffusion-xl-1024-v1-
             "seed": int(seed_val),
         },
     )
+    
+    if response.status_code != 200:
+        raise Exception("Non-200 response: " + str(response.text))
 
     return response
 
@@ -128,33 +131,52 @@ def generate_stable3(api_key, prompt, model, strength=0.5, aspect_ratio='1:1', s
     from os import getenv
     from requests import post
     
-    api_host = getenv('API_HOST', 'https://api.stability.ai')
+    def send_generation_request(host, params, api_key):
+        headers = {
+            "Accept": "image/*",
+            "Authorization": f"Bearer {api_key}"
+        }
+
+        # Encode parameters
+        files = {}
+        image = params.pop("image", None)
+        mask = params.pop("mask", None)
+        if image is not None and image != '':
+            files["image"] = open(image, 'rb')
+        if mask is not None and mask != '':
+            files["mask"] = open(mask, 'rb')
+        if len(files)==0:
+            files["none"] = ''
+
+        # Send request
+        print(f"Sending REST request to {host}...")
+        response = post(
+            host,
+            headers=headers,
+            files=files,
+            data=params
+        )
+        if not response.ok:
+            raise Exception(f"HTTP {response.status_code}: {response.text}")
+
+        return response
     
     # Prepare the request payload
-    payload = {
-        "text_prompts": [
-            {"text": prompt}
-        ],
-        "cfg_scale": cfg_scale,
+    parameters = {
+        "prompt": prompt,
+        "negative_prompt": negative_prompt,
         "aspect_ratio": aspect_ratio,
-        "strength": strength,
-        "seed": seed if seed != 0 else None,
+        "seed": seed,
+        "model": model,
+        "output_format": "png",
+        "mode": "text-to-image"
     }
     
-    # Exclude negative_prompt for sd3-large-turbo
-    if model != "stable-diffusion-3-large-turbo":
-        payload["negative_prompt"] = negative_prompt
+    # Host...
+    host = f"https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
     # Make the API request
-    response = post(
-        f"{api_host}/v1/generation/{model}/text-to-image",
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        },
-        json=payload
-    )
+    response = send_generation_request(host, parameters, api_key)
 
     if response.status_code != 200:
         raise Exception("Non-200 response: " + str(response.text))
@@ -182,7 +204,7 @@ def saveimages(data, model):
     # List of image locations
     imagelocs = []
     
-    if model == "sd3-turbo" or model == "sd3":
+    if model in ["sd3.5-large", "sd3.5-large-turbo", "sd3.5-medium", "sd3-large", "sd3-large-turbo", "sd3-medium"]:
         image = data.content
         with open(f'{output_folder}/{current_time}.png', "wb") as f:
             f.write(image)
@@ -204,6 +226,18 @@ def displayimages(data):
     
     # Data is a list of file locations. Display each image in matplotlib.
     # If more than one image, display in a grid, at most 2 images per row
+    num_images = len(data)
+    if num_images == 1:
+        plt.imshow(plt.imread(data[0]))
+        plt.axis('off')
+        plt.show()
+    else:
+        fig, ax = plt.subplots(1, num_images, figsize=(3*num_images, 3))
+        for i, img in enumerate(data):
+            ax[i].imshow(plt.imread(img))
+            ax[i].axis('off')
+        plt.show()
+    
 
 def promptPPLX(query):
     # Load the API key from the keys.json file, key "perplexity"

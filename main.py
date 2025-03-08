@@ -1,6 +1,7 @@
 import sys
 import json
 import time
+import argparse
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QCheckBox, QTextEdit, QPushButton, QSplitter, QSizePolicy
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtCore import Qt, QSize
@@ -51,6 +52,9 @@ class MainWindow(QMainWindow):
         
         # Readjust the size of the Right Layout's image
         self.resizeEvent(None, first=True)
+        
+        # Set the main Window in the Right Layout
+        self.right_layout.set_main_window(self)
 
 
     def clicked_generate(self):
@@ -146,6 +150,9 @@ class LeftLayout(QWidget):
     def __init__(self, specifications, generator, parent=None):
         super().__init__(parent)
         self.layout = QGridLayout(self)
+        
+        self.main_window = None
+        self.right_layout = None
 
         # First row: Title
         self.title_label = QLabel("Stability API GUI")
@@ -238,8 +245,37 @@ class LeftLayout(QWidget):
         # Generate Button Click Event
         self.generate_button.clicked.connect(self.clicked_generate)
 
+        self.generator = generator
+    
+    def set_right_layout(self, right_layout):
+        self.right_layout = right_layout
+
     def clicked_generate(self):
+        # Get All of the Following Values:
+        # api_key, model, aspect, seed, use_random_seed, prompt, negative_prompt, steps, cfg, samples, use_perplexity
+        api_key = self.api_key_textbox.text()
+        model = self.model_dropdown.currentText()
+        aspect = self.aspect_dropdown.currentText()
+        seed = self.seed_textbox.text()
+        use_random_seed = self.random_seed_checkbox.isChecked()
+        prompt = self.prompt_textbox.toPlainText()
+        negative_prompt = self.negative_prompt_textbox.toPlainText()
+        steps = self.steps_textbox.text()
+        cfg = self.cfg_textbox.text()
+        samples = self.samples_textbox.text()
+        use_perplexity = self.perplexity_checkbox.isChecked()
+        
+        # Set the values in Generator.set_values
+        self.generator.set_values(api_key, model, aspect, seed, use_random_seed, prompt, negative_prompt, steps, cfg, samples, use_perplexity)
+        
         print("Generate button clicked")
+        self.generator.generate_image()
+        
+        # Update the image sizes
+        self.main_window.update_image_sizes()
+    
+    def set_main_window(self, main_window):
+        self.main_window = main_window
 
 
 class RightLayout(QWidget):
@@ -268,15 +304,50 @@ class RightLayout(QWidget):
         self.layout.addWidget(self.placeholder_image, 0, 1, Qt.AlignCenter)
         self.layout.addWidget(self.right_button, 0, 2, alignment=Qt.AlignLeft)
 
+        self.generator = generator
+        self.main_window = None
+        self.left_side = None
+    
+    def set_left_side(self, left_side):
+        self.left_side = left_side
+
+    def set_main_window(self, main_window):
+        self.main_window = main_window
+
     def clicked_left(self):
         print("Left button clicked")
+        self.generator.current_image_idx -= 1
+        if self.generator.current_image_idx < 0:
+            self.generator.current_image_idx = len(self.generator.image_list) - 1
+        self.generator.current_image = self.generator.image_list[self.generator.current_image_idx]
+        self.main_window.update_image_sizes()
 
     def clicked_right(self):
         print("Right button clicked")
+        self.generator.current_image_idx += 1
+        if self.generator.current_image_idx >= len(self.generator.image_list):
+            self.generator.current_image_idx = 0
+        self.generator.current_image = self.generator.image_list[self.generator.current_image_idx]
+        self.main_window.update_image_sizes()
+
+class ArgsParser:
+    def __init__(self):
+        self.parser = argparse.ArgumentParser()
+        self.parser.add_argument("--debug", default=False, action="store_true")
+
+    def parse(self):
+        return self.parser.parse_args()
+
 
 if __name__ == "__main__":
+    args = ArgsParser().parse()
+    
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
     window.resizeEvent(None, first=True)
+    window.left_layout.set_main_window(window)
+    window.left_layout.set_right_layout(window.right_layout)
+    window.right_layout.set_main_window(window)
+    window.right_layout.set_left_side(window.left_layout)
     sys.exit(app.exec())
