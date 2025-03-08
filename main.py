@@ -3,7 +3,7 @@ import json
 import time
 import argparse
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QCheckBox, QTextEdit, QPushButton, QSplitter, QSizePolicy
-from PySide6.QtGui import QPixmap, QFont
+from PySide6.QtGui import QPixmap, QFont, QIcon
 from PySide6.QtCore import Qt, QSize
 
 from scripts.lib import ImageGenerator
@@ -27,6 +27,9 @@ class MainWindow(QMainWindow):
 
         # Set minimum size to 500x500
         self.main_widget.setMinimumSize(500, 500)
+
+        # Set application logo
+        self.setWindowIcon(QIcon("data/logo.png"))
 
         # Create left and right layouts
         self.left_layout = LeftLayout(self.specifications, self.generator, self.main_widget)

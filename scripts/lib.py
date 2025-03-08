@@ -3,8 +3,8 @@ import requests
 
 class ImageGenerator():
     def __init__(self):
-        self.current_image = "placeholder.jpg"
-        self.image_list = ["placeholder.jpg"]
+        self.current_image = "data/placeholder.jpg"
+        self.image_list = ["data/placeholder.jpg"]
         self.current_image_idx = 0
         with open("keys.json", "r") as f:
             self.api_key = json.load(f)["stable_diffusion"]
