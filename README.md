@@ -13,7 +13,7 @@ StableAPI GUI was created using Python to make it easier for a user to create im
 ## Example of GUI
 <div align="center">
 
-![Example of StableAPI GUI](data/example.png)
+![Example of StableAPI GUI](data/Example.png)
 
 </div>
 
