@@ -27,7 +27,7 @@ Below is a list of items I will be looking to explore and add:
 - General Fixes to Old UI.
 
 Models I will be adding in the Future:
-~~- Adding Stable Diffusion 3.5 Large/Medium + Turbo~~ (Added 25/03/07)
+- ~~Adding Stable Diffusion 3.5 Large/Medium + Turbo~~ (Added 25/03/07)
 - Upscaling
 - Control
 - Stable Video & 3D
